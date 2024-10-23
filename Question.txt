@@ -1,0 +1,774 @@
+
+### CAESAR CIPHER
+# Caesar Cipher Encryption
+def caesar_cipher_encrypt(plaintext, shift):
+    result = ''
+    for char in plaintext:
+        if char.isalpha():
+            shift_amount = shift % 26
+            start = ord('A') if char.isupper() else ord('a')
+            result += chr(start + (ord(char) - start + shift_amount) % 26)
+        else:
+            result += char
+    return result
+
+# Caesar Cipher Decryption
+def caesar_cipher_decrypt(ciphertext, shift):
+    return caesar_cipher_encrypt(ciphertext, -shift)
+
+# Example usage
+plaintext = "Kya Woh Sach Tha"
+shift = 3
+encrypted = caesar_cipher_encrypt(plaintext, shift)
+decrypted = caesar_cipher_decrypt(encrypted, shift)
+
+print(f"Caesar Cipher Encryption: {encrypted}")
+print(f"Caesar Cipher Decryption: {decrypted}")
+
+
+
+##MONOALPHABETIC CIPHER
+# Monoalphabetic Cipher Encryption
+def monoalphabetic_cipher_encrypt(plaintext, key):
+    alphabet = 'abcdefghijklmnopqrstuvwxyz'
+    substitution = key.lower()
+    translation_table = str.maketrans(alphabet, substitution)
+    return plaintext.translate(translation_table)
+
+# Monoalphabetic Cipher Decryption
+def monoalphabetic_cipher_decrypt(ciphertext, key):
+    alphabet = 'abcdefghijklmnopqrstuvwxyz'
+    substitution = key.lower()
+    reverse_substitution = ''.join(sorted(set(substitution), key=substitution.index))
+    translation_table = str.maketrans(substitution, alphabet)
+    return ciphertext.translate(translation_table)
+
+# Example usage
+key = "zxcvbnmasdfghjklqwertyuiop"
+plaintext = "Tamas do makuda Haule"
+encrypted = monoalphabetic_cipher_encrypt(plaintext, key)
+decrypted = monoalphabetic_cipher_decrypt(encrypted, key)
+
+print(f"Monoalphabetic Cipher Encryption: {encrypted}")
+print(f"Monoalphabetic Cipher Decryption: {decrypted}")
+
+
+
+##VERNAM CIPHER
+def vernam_cipher(plaintext, key):
+    if len(plaintext) != len(key):
+        raise ValueError("Key must be the same length as plaintext.")
+    
+    ciphertext = ''
+    for i in range(len(plaintext)):
+        p = ord(plaintext[i])  # Get the ASCII value of the plaintext character
+        k = ord(key[i])        # Get the ASCII value of the key character
+        c = chr(p ^ k)         # XOR the ASCII values and convert back to a character
+        ciphertext += c
+    return ciphertext
+
+def vernam_decipher(ciphertext, key):
+    # XORing the ciphertext with the same key decrypts the message
+    return vernam_cipher(ciphertext, key)
+
+# Example usage
+plaintext = "MadMoiya"
+key = "XMCKLDdf"
+
+# Encryption
+ciphertext = vernam_cipher(plaintext, key)
+# Printing in hexadecimal format for better readability
+print("Vernam Cipher Text:", ''.join(f'\\x{ord(c):02x}' for c in ciphertext))
+
+# Decryption
+decrypted_text = vernam_decipher(ciphertext, key)
+print("Decrypted Text:", decrypted_text)
+
+
+
+##PLAYFAIR CIPHER
+# Generate Playfair cipher table
+def generate_playfair_table(key):
+    # Normalize the key by removing duplicates and converting to uppercase
+    key = ''.join(sorted(set(key.upper()), key=key.index))
+    alphabet = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'  # 'J' is excluded
+    table = [char for char in key if char in alphabet]
+    
+    # Append remaining letters from the alphabet
+    for char in alphabet:
+        if char not in table:
+            table.append(char)
+    
+    # Convert the list into a 5x5 table
+    return [table[i * 5:(i + 1) * 5] for i in range(5)]
+
+# Find the position of a letter in the table
+def find_position(table, letter):
+    for row in range(5):
+        for col in range(5):
+            if table[row][col] == letter:
+                return row, col
+    return None
+
+# Playfair encryption function
+def playfair_encrypt(plaintext, key):
+    plaintext = plaintext.upper().replace('J', 'I').replace(' ', '')
+    
+    # Insert 'X' between repeated letters in pairs
+    i = 0
+    while i < len(plaintext) - 1:
+        if plaintext[i] == plaintext[i + 1]:
+            plaintext = plaintext[:i + 1] + 'X' + plaintext[i + 1:]
+        i += 2
+
+    # If the plaintext has an odd number of characters, pad with 'X'
+    if len(plaintext) % 2 != 0:
+        plaintext += 'X'
+    
+    table = generate_playfair_table(key)
+    ciphertext = ''
+    
+    # Encrypt in pairs
+    for i in range(0, len(plaintext), 2):
+        a, b = plaintext[i], plaintext[i + 1]
+        row1, col1 = find_position(table, a)
+        row2, col2 = find_position(table, b)
+        
+        if row1 == row2:
+            # Same row: move right (wrap around if necessary)
+            ciphertext += table[row1][(col1 + 1) % 5]
+            ciphertext += table[row2][(col2 + 1) % 5]
+        elif col1 == col2:
+            # Same column: move down (wrap around if necessary)
+            ciphertext += table[(row1 + 1) % 5][col1]
+            ciphertext += table[(row2 + 1) % 5][col2]
+        else:
+            # Rectangle swap: take the letters from the opposite corners
+            ciphertext += table[row1][col2]
+            ciphertext += table[row2][col1]
+    
+    return ciphertext
+
+# Example usage
+plaintext = "Ladlamayasa"
+key = "KEYWORD"
+ciphertext = playfair_encrypt(plaintext, key)
+print("Playfair Cipher Text:", ciphertext)
+
+
+
+##RAIL FENCE CIPHER
+# Rail Fence Encryption
+def rail_fence_encrypt(text, key):
+    rail = [''] * key
+    row = 0
+    direction = 1  # 1 for down, -1 for up
+    
+    for char in text:
+        rail[row] += char
+        row += direction
+        # Change direction if we are at the top or bottom rail
+        if row == 0 or row == key - 1:
+            direction *= -1
+            
+    return ''.join(rail)
+
+# Rail Fence Decryption
+def rail_fence_decrypt(cipher, key):
+    rail = [['\n' for _ in range(len(cipher))] for _ in range(key)]
+    row, col, direction = 0, 0, 1
+    
+    # Mark the positions to be filled with '*'
+    for i in range(len(cipher)):
+        rail[row][col] = '*'
+        col += 1
+        row += direction
+        if row == 0 or row == key - 1:
+            direction *= -1
+
+    # Fill the rail with the ciphertext characters
+    index = 0
+    for i in range(key):
+        for j in range(len(cipher)):
+            if rail[i][j] == '*' and index < len(cipher):
+                rail[i][j] = cipher[index]
+                index += 1
+
+    # Read the grid to get the plaintext
+    result = []
+    row, col, direction = 0, 0, 1
+    for i in range(len(cipher)):
+        result.append(rail[row][col])
+        col += 1
+        row += direction
+        if row == 0 or row == key - 1:
+            direction *= -1
+            
+    return ''.join(result)
+
+# Example usage:
+plaintext = "HELLOTRANSPOSITION"
+key = 3
+
+# Encryption
+cipher = rail_fence_encrypt(plaintext, key)
+print("Rail Fence Encrypted Text:", cipher)
+
+# Decryption
+decrypted_text = rail_fence_decrypt(cipher, key)
+print("Rail Fence Decrypted Text:", decrypted_text)
+
+
+
+##SIMPLE COLUMNAR
+import math
+
+# Generate the matrix (grid) for the plaintext
+def genmat(pt, col):
+    lpt = list(pt)
+    row = math.ceil(len(pt) / col)
+    emptycells = (row * col) - len(pt)
+    lpt.extend('x' * emptycells)  # Pad with 'x' to fill the matrix
+    mat = []
+    for i in range(0, len(lpt), col):  # Create the matrix
+        mat.append(lpt[i:i + col])
+    return mat
+
+# Encryption function
+def encrypt(msg, key):
+    col = len(key)
+    pt = list(msg.replace(" ", ""))  # Remove spaces from the plaintext
+    matrix = genmat(pt, col)  # Generate the grid (matrix)
+
+    skey = sorted(list(key))  # Sort the key alphabetically
+    ct = ""  # Ciphertext to store the result
+
+    # Create a mapping of each character in the sorted key to their indices in the original key
+    key_indices = {char: [] for char in skey}
+    for index, char in enumerate(key):
+        if char in key_indices:
+            key_indices[char].append(index)
+
+    used_indices = {char: 0 for char in skey}  # Track used indices for each key character
+
+    for char in skey:  # Iterate through sorted key
+        if used_indices[char] < len(key_indices[char]):  # If there are unused indices for this character
+            cur_col_index = key_indices[char][used_indices[char]]
+            used_indices[char] += 1  # Mark this index as used
+
+            for row in matrix:  # Read characters from the current column
+                ct += row[cur_col_index]
+
+    return ct
+
+# Example usage
+print(encrypt("Hellofnnadaworld", "Hacka"))  # Test the encryption
+
+
+
+###DES
+#DES 
+import pyDes 
+data=b"Encrypt this data" 
+#des constructor 
+#key=64 bits =8byes => bytestring 
+#mode=cbc 
+#IV => 8bytes => bytestring 
+# pad=None 
+# padmode=PAD_PKCS5 
+k=pyDes.des(b"DECRYPTS",pyDes.CBC,b"\0\0\0\0\0\0\0\0",pad=None,padmode=pyDes.PAD_PKCS5) 
+c=k.encrypt(data) 
+print("Encrypted:",c) 
+print("Decrypted:",k.decrypt(c)) 
+assert k.decrypt(c) == data 
+
+
+
+###AES
+ 
+import pyaes 
+key=b"This_key_for_demo_purposes_only!" 
+pt="Encrypt this string" 
+aes=pyaes.AESModeOfOperationCTR(key)   
+ct=aes.encrypt(pt) 
+print("Cipher Text",ct) 
+aes=pyaes.AESModeOfOperationCTR(key) 
+dec=aes.decrypt(ct) 
+print("Plain Text",dec)
+
+
+
+### RSA
+import random
+import math
+
+def primals(lower, upper):
+    prime_list = []
+    for num in range(lower, upper + 1):
+        if num > 1:  # Check if the number is greater than 1
+            for i in range(2, int(math.sqrt(num)) + 1):  # Check divisibility only up to sqrt(num)
+                if (num % i) == 0:
+                    break
+            else:
+                prime_list.append(num)
+    return prime_list
+
+def generateKeys():
+    primes = primals(10, 100)
+    p, q = random.sample(primes, 2)  # Ensure p and q are distinct
+    n = p * q
+    phiN = (p - 1) * (q - 1)
+
+    # Choose e such that 1 < e < phiN and gcd(e, phiN) = 1
+    e = next(i for i in range(2, phiN) if math.gcd(phiN, i) == 1)
+
+    # Calculate d, the modular multiplicative inverse of e mod phiN
+    d = pow(e, -1, phiN)
+
+    requisites = {"n": n, "e": e, "d": d}
+    print(requisites)
+    return requisites
+
+def encrypt(plaintext, requisites):
+    n = requisites["n"]
+    e = requisites["e"]
+    encrypted_text = [(ord(char) ** e) % n for char in plaintext]
+    return encrypted_text
+
+def decrypt(ciphertext, requisites):
+    n = requisites["n"]
+    d = requisites["d"]
+    decrypted_text = ''.join([chr((char ** d) % n) for char in ciphertext])
+    return decrypted_text
+
+# Generate RSA keys
+prerequisites = generateKeys()
+
+# Input plaintext to encrypt
+plaintext = "HELLO"
+print("Plaintext:", plaintext)
+
+# Encrypting the plaintext
+ciphertext = encrypt(plaintext, prerequisites)
+print("Encrypted Text:", ciphertext)
+
+# Decrypting the ciphertext
+decrypted_text = decrypt(ciphertext, prerequisites)
+print("Decrypted Text:", decrypted_text)
+
+
+
+###DIFFIE HELLMAN
+import random
+
+def diffie_hellman_key_exchange():
+    # Publicly known prime number (P) and base (G)
+    P = 23  # Prime number
+    G = 9   # Primitive root modulo P
+
+    # Manish's secret key (a)
+    a = random.randint(1, P - 1)
+    A = pow(G, a, P)  # Manish's public key
+
+    # Manisha's secret key (b)
+    b = random.randint(1, P - 1)
+    B = pow(G, b, P)  # Manisha's public key
+
+    # Manish computes the shared key using Manisha's public key B
+    manish_shared_key = pow(B, a, P)
+
+    # Manisha computes the shared key using Manish's public key A
+    manisha_shared_key = pow(A, b, P)
+
+    return manish_shared_key, manisha_shared_key
+
+# Generate the symmetric keys for both Manish and Manisha
+manish_key, manisha_key = diffie_hellman_key_exchange()
+print("Manish's Key:", manish_key)
+print("Manisha's Key:", manisha_key)
+
+# Check if both keys are identical (which they should be)
+if manish_key == manisha_key:
+    print("Key Agreement Successful! Shared Key:", manish_key)
+else:
+    print("Key Agreement Failed!")
+
+
+
+###MD5 ALGORITHM
+import hashlib
+
+def compute_md5(message):
+    md5_hash = hashlib.md5()
+    md5_hash.update(message.encode('utf-8'))
+    return md5_hash.hexdigest()
+
+message = "MumbaiMazhaMayaNagri"
+digest = compute_md5(message)
+
+print("Message:", message)
+print("MD5 Digest:", digest)
+
+
+###HMAC SHAI SIGNATURE
+import hmac
+import hashlib
+
+def hmac_sha1(key, message):
+    return hmac.new(key.encode(), message.encode(), hashlib.sha1).hexdigest()
+
+key = "my_secret_key"
+message = "MumbaiMazhaMayaNagri"
+signature = hmac_sha1(key, message)
+
+print("Key:", key)
+print("Message:", message)
+print("HMAC-SHA1 Signature:", signature)
+
+
+
+###SSL
+import ssl
+import socket
+
+def create_ssl_socket():
+    hostname = 'www.google.com'
+    context = ssl.create_default_context()
+    
+    try:
+        with socket.create_connection((hostname, 443)) as sock:
+            with context.wrap_socket(sock, server_hostname=hostname) as ssock:
+                print("SSL Connection Established")
+                print("SSL Version:", ssock.version())
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+create_ssl_socket()
+
+
+###space invaders 
+import pygame
+import random
+import math
+
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+screen_width = 800
+screen_height = 600
+screen = pygame.display.set_mode((screen_width, screen_height))
+
+# Background
+background = pygame.image.load('background.png')
+background = pygame.transform.scale(background, (screen_width, screen_height))
+
+# Title and Icon
+pygame.display.set_caption("Space Invaders")
+icon = pygame.image.load('spaceship.png')
+icon = pygame.transform.scale(icon, (32, 32))
+pygame.display.set_icon(icon)
+
+# Player
+player_img = pygame.image.load('spaceship.png')
+player_img = pygame.transform.scale(player_img, (64, 64))
+player_x = 370
+player_y = 480
+player_x_change = 0
+player_speed = 5
+
+# Enemy
+enemy_img = []
+enemy_x = []
+enemy_y = []
+enemy_x_change = []
+enemy_y_change = []
+num_of_enemies = 6
+
+for i in range(num_of_enemies):
+    enemy_image = pygame.image.load('enemy.png')
+    enemy_image = pygame.transform.scale(enemy_image, (64, 64))
+    enemy_img.append(enemy_image)
+    enemy_x.append(random.randint(0, 735))
+    enemy_y.append(random.randint(50, 150))
+    enemy_x_change.append(4)
+    enemy_y_change.append(40)
+
+# Bullet
+bullet_img = pygame.image.load('bullet.png')
+bullet_img = pygame.transform.scale(bullet_img, (32, 32))
+bullet_x = 0
+bullet_y = 480
+bullet_y_change = 10
+bullet_state = "ready"  # ready - you can't see bullet; fire - bullet moving
+
+# Score
+score_value = 0
+font = pygame.font.Font('freesansbold.ttf', 32)
+text_x = 10
+text_y = 10
+
+# Game Over
+over_font = pygame.font.Font('freesansbold.ttf', 64)
+
+def show_score(x, y):
+    score = font.render("Score: " + str(score_value), True, (255, 255, 255))
+    screen.blit(score, (x, y))
+
+def game_over_text():
+    over_text = over_font.render("GAME OVER", True, (255, 255, 255))
+    screen.blit(over_text, (200, 250))
+
+def player(x, y):
+    screen.blit(player_img, (x, y))
+
+def enemy(x, y, i):
+    screen.blit(enemy_img[i], (x, y))
+
+def fire_bullet(x, y):
+    global bullet_state
+    bullet_state = "fire"
+    screen.blit(bullet_img, (x + 16, y + 10))
+
+def is_collision(enemy_x, enemy_y, bullet_x, bullet_y):
+    distance = math.sqrt(math.pow(enemy_x - bullet_x, 2) + math.pow(enemy_y - bullet_y, 2))
+    return distance < 27
+
+# Game Loop
+running = True
+while running:
+    screen.blit(background, (0, 0))  # Draw background
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        # Check for keystrokes
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                player_x_change = -player_speed
+            if event.key == pygame.K_RIGHT:
+                player_x_change = player_speed
+            if event.key == pygame.K_SPACE:
+                if bullet_state == "ready":
+                    bullet_x = player_x
+                    fire_bullet(bullet_x, bullet_y)
+
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
+                player_x_change = 0
+
+    # Player movement
+    player_x += player_x_change
+    if player_x <= 0:
+        player_x = 0
+    elif player_x >= screen_width - 64:
+        player_x = screen_width - 64
+
+    # Enemy movement
+    for i in range(num_of_enemies):
+        # Game Over
+        if enemy_y[i] > 440:
+            for j in range(num_of_enemies):
+                enemy_y[j] = 2000  # Move all enemies off-screen
+            game_over_text()
+            break
+
+        enemy_x[i] += enemy_x_change[i]
+        if enemy_x[i] <= 0:
+            enemy_x_change[i] = 4
+            enemy_y[i] += enemy_y_change[i]
+        elif enemy_x[i] >= screen_width - 64:
+            enemy_x_change[i] = -4
+            enemy_y[i] += enemy_y_change[i]
+
+        # Collision detection
+        collision = is_collision(enemy_x[i], enemy_y[i], bullet_x, bullet_y)
+        if collision:
+            bullet_y = 480
+            bullet_state = "ready"
+            score_value += 1
+            enemy_x[i] = random.randint(0, 735)
+            enemy_y[i] = random.randint(50, 150)
+
+        enemy(enemy_x[i], enemy_y[i], i)
+
+    # Bullet movement
+    if bullet_y <= 0:
+        bullet_y = 480
+        bullet_state = "ready"
+
+    if bullet_state == "fire":
+        fire_bullet(bullet_x, bullet_y)
+        bullet_y -= bullet_y_change
+
+    player(player_x, player_y)
+    show_score(text_x, text_y)
+
+    pygame.display.update()
+
+pygame.quit()
+
+
+##SNAKE GAME
+import pygame
+import random
+import math
+
+# pygame setup
+pygame.init()
+square_width = 800
+screen = pygame.display.set_mode([square_width] * 2)
+clock = pygame.time.Clock()
+pygame.display.set_caption("Snake Game")
+running = True
+game_over = False
+
+# Define Colors
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+WHITE = (255, 255, 255)
+
+# Define Font
+font = pygame.font.Font('freesansbold.ttf', 32)  # For displaying score
+over_font = pygame.font.Font('freesansbold.ttf', 64)  # For displaying "Game Over"
+
+# Playground settings
+pixel_width = 50
+
+def generate_starting_position():
+    position_range = (pixel_width // 2, square_width - pixel_width // 2, pixel_width)
+    return [random.randrange(*position_range), random.randrange(*position_range)]
+
+# Snake settings
+snake_pixel = pygame.Rect(0, 0, pixel_width, pixel_width)
+snake_pixel.center = generate_starting_position()
+snake = [pygame.Rect(snake_pixel)]
+snake_direction = (0, 0)
+snake_length = 1
+
+# Target settings
+target = pygame.Rect(0, 0, pixel_width, pixel_width)
+target.center = generate_starting_position()
+
+def reset():
+    target.center = generate_starting_position()
+    snake_pixel.center = generate_starting_position()
+    return [pygame.Rect(snake_pixel)]
+
+def is_out_of_bounds():
+    return (snake_pixel.bottom > square_width or
+            snake_pixel.top < 0 or
+            snake_pixel.left < 0 or
+            snake_pixel.right > square_width)
+
+def check_collision(rect_list):
+    for rect in rect_list[:-1]:  # Check if the snake collides with itself
+        if rect.colliderect(snake_pixel):
+            return True
+    return False
+
+def show_score(score):
+    score_text = font.render(f"Score: {score}", True, BLACK)
+    screen.blit(score_text, (10, 10))
+
+def game_over_screen(score):
+    game_over_text = over_font.render("Game Over", True, BLACK)
+    score_text = font.render(f"Final Score: {score}", True, BLACK)
+    restart_text = font.render("Press R to Restart or Q to Quit", True, BLACK)
+    
+    screen.fill(WHITE)
+    screen.blit(game_over_text, (square_width // 2 - game_over_text.get_width() // 2, square_width // 2 - game_over_text.get_height() * 2))
+    screen.blit(score_text, (square_width // 2 - score_text.get_width() // 2, square_width // 2 - score_text.get_height() // 2))
+    screen.blit(restart_text, (square_width // 2 - restart_text.get_width() // 2, square_width // 2 + score_text.get_height()))
+    pygame.display.flip()
+
+def handle_game_over():
+    global running, game_over
+    while game_over:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                game_over = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:  # Restart the game
+                    reset_game()
+                    return
+                elif event.key == pygame.K_q:  # Quit the game
+                    running = False
+                    game_over = False
+
+def reset_game():
+    global snake, snake_pixel, snake_direction, snake_length, target, game_over
+    snake_pixel = pygame.Rect(0, 0, pixel_width, pixel_width)
+    snake_pixel.center = generate_starting_position()
+    snake = [pygame.Rect(snake_pixel)]
+    snake_direction = (0, 0)
+    snake_length = 1
+    target = pygame.Rect(0, 0, pixel_width, pixel_width)
+    target.center = generate_starting_position()
+    game_over = False
+
+# Main game loop
+while running:
+    if game_over:
+        game_over_screen(snake_length - 1)
+        handle_game_over()
+        continue
+    
+    # Poll for events
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Fill the screen with a white color to wipe away anything from last frame
+    screen.fill(WHITE)
+
+    # Check for out-of-bounds or self-collision
+    if is_out_of_bounds() or check_collision(snake):
+        game_over = True
+
+    # Handle input for snake direction
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_UP] and snake_direction != (0, pixel_width):
+        snake_direction = (0, - pixel_width)
+    if keys[pygame.K_DOWN] and snake_direction != (0, -pixel_width):
+        snake_direction = (0, pixel_width)
+    if keys[pygame.K_LEFT] and snake_direction != (pixel_width, 0):
+        snake_direction = (- pixel_width, 0)
+    if keys[pygame.K_RIGHT] and snake_direction != (- pixel_width, 0):
+        snake_direction = (pixel_width, 0)
+
+    # Move the snake
+    if snake_direction != (0, 0):
+        # Create a new head position
+        new_head = pygame.Rect(snake_pixel.move(snake_direction))
+        snake_pixel = new_head
+        # Add new head to the snake
+        snake.append(pygame.Rect(snake_pixel))
+        # Keep the length of the snake
+        if len(snake) > snake_length:
+            snake.pop(0)  # Remove the oldest part of the snake
+
+    # Check for eating the target
+    if snake_pixel.center == target.center:
+        target.center = generate_starting_position()
+        snake_length += 1
+
+    # Render the snake and the target
+    for snake_part in snake:
+        pygame.draw.rect(screen, BLACK, snake_part)  # Changed to BLACK for the snake color
+    pygame.draw.rect(screen, RED, target)
+
+    # Display score
+    show_score(snake_length - 1)  # Score is snake_length - 1
+
+    # Update the display
+    pygame.display.flip()
+
+    # Dynamic FPS based on snake length (increases as snake grows)
+    fps = 9 + (snake_length // 5)  # Increase FPS as the snake grows
+    clock.tick(fps)
+
+pygame.quit()
